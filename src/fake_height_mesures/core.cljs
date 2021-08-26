@@ -59,7 +59,7 @@
 
 (defn app []
   [:div.container.is-max-desktop
-   [:h1.title.is-1.has-text-centered.mt-5 "Imperial System in a Nutsheel"]
+   [:h1.title.is-1.has-text-centered.mt-5 "Imperial System in a Nutshell"]
    (new-metric-form)
    (size-comparator @selected-metric @metrics)])
 
