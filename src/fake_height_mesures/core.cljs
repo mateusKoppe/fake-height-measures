@@ -1,4 +1,4 @@
-(ns fake-height-mesures.core
+(ns fake-height-measures.core
   (:require
    [reagent.core :as r]
    [reagent.dom :as rd]))
