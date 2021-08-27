@@ -6,12 +6,16 @@
 (enable-console-print!)
 
 (defonce initial-measure {:name "Feet" :cm 30.48})
+(defonce reference (atom initial-measure))
 (defonce measures (atom [initial-measure
                           {:name "Meter" :cm 100}
                           {:name "Aligators" :cm 340}]))
 
 (defn add-new-measure [data]
   (swap! measures #(conj % data)))
+
+(defn select-reference [measure]
+  (reset! reference measure))
 
 (defn delete-measure [measure]
   (swap! measures #(filter (fn [m] (not= m measure)) %)))
@@ -49,28 +53,30 @@
      {:on-click #(on-delete measure)}
      [:i.fas.fa-trash]]]])
 
-(defn size-comparator []
-  (let [reference (atom initial-measure)
-        change-reference #(reset! reference %)]
-    (fn [{:keys [measures on-delete-measure]}]
-      [:div.mt-6
-       [:h2.title.is-3 (str (:name @reference) " height is:")]
-       [:div.columns.is-flex-wrap-wrap
-        (doall (map-indexed (fn [index measure]
-               [:div.column.is-one-quarter
-                {:key index}
-                [measure-card {:measure measure
+(defn size-comparator [{:keys [measures on-delete-measure on-select-measure]}]
+  [:div.mt-6
+   [:h2.title.is-3 (str (:name @reference) " height is:")]
+   [:div.columns.is-flex-wrap-wrap
+    (doall (map-indexed
+            (fn [index measure]
+              [:div.column.is-one-quarter
+               {:key index}
+               [measure-card {:measure measure
                               :reference @reference
-                              :on-select change-reference
+                              :on-select on-select-measure
                               :on-delete on-delete-measure}]])
-             measures))]])))
+            measures))]])
 
 (defn app []
-  [:div.container.is-max-desktop
-   [:h1.title.is-1.has-text-centered.mt-5 "Imperial System in a Nutshell"]
-   [measure-form {:on-submit add-new-measure}]
-   [size-comparator {:measures @measures
-                     :on-delete-measure delete-measure}]])
+  (let [handle-new-measure #(do (add-new-measure %)
+                                (select-reference %))]
+    (fn []
+      [:div.container.is-max-desktop
+       [:h1.title.is-1.has-text-centered.mt-5 "Imperial System in a Nutshell"]
+       [measure-form {:on-submit handle-new-measure}]
+       [size-comparator {:measures @measures
+                         :on-delete-measure delete-measure
+                         :on-select-measure select-reference}]])))
 
 (rd/render [app]
            (. js/document (getElementById "app")))
