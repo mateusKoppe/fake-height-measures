@@ -1,67 +1,76 @@
 (ns fake-height-measures.core
   (:require
-   [reagent.core :as r]
+   [reagent.core :as r :refer [atom]]
    [reagent.dom :as rd]))
 
 (enable-console-print!)
 
-;; define your app data so that it doesn't get over-written on reload
+(defonce initial-measure {:name "Feet" :cm 30.48})
+(defonce measures (atom [initial-measure
+                          {:name "Meter" :cm 100}
+                          {:name "Aligators" :cm 340}]))
 
-(defonce selected-metric (r/atom {:name "Feet"
-                                  :cm 30.48}))
+(defn add-new-measure [data]
+  (swap! measures #(conj % data)))
 
-(defonce metrics (r/atom [{:name "Meter"
-                           :cm 100}
-                          {:name "Feet"
-                           :cm 30.48}
-                          {:name "Aligators"
-                           :cm 340}]))
+(defn delete-measure [measure]
+  (swap! measures #(filter (fn [m] (not= m measure)) %)))
 
-(defonce metric-form-data (r/atom {:name nil
-                                   :cm :nil}))
-(defn handle-new-metric-submit [e]
-  (.preventDefault e)
-  (reset! metrics (conj @metrics @metric-form-data))
-  (reset! metric-form-data {:name nil
-                            :cm nil}))
+(defn measure-form []
+  (let [data (atom {:name nil
+                      :cm nil})]
+    (fn [{:keys [on-submit]}]
+      (let [handle-submit #(do (.preventDefault %)
+                               (on-submit @data)
+                               (reset! data {:name nil
+                                             :cm nil}))]
+        [:form.mt-6 {:on-submit handle-submit}
+         [:div.field.has-addons.is-justify-content-center
+          [:div.control>input.input
+           {:placeholder "Name"
+            :value (:name @data)
+            :on-change (fn [e] (swap! data #(assoc % :name (-> e .-target .-value))))}]
+          [:div.control>input.input
+           {:type "number"
+            :placeholder "CM"
+            :value (:cm @data)
+            :on-change (fn [e] (swap! data #(assoc % :cm (-> e .-target .-value))))}]
+          [:div.control>button.button.is-primary "Add"]]]))))
 
-(defn new-metric-form []
-  [:form.mt-6 {:on-submit handle-new-metric-submit}
-   [:div.field.has-addons.is-justify-content-center
-    [:div.control>input.input
-     {:placeholder "Name"
-      :value (:name @metric-form-data)
-      :on-change #(reset! metric-form-data (assoc @metric-form-data :name (-> % .-target .-value)))}]
-    [:div.control>input.input
-     {:type "number"
-      :placeholder "CM"
-      :value (:cm @metric-form-data)
-      :on-change #(reset! metric-form-data (assoc @metric-form-data :cm (-> % .-target .-value)))}]
-    [:div.control>button.button.is-primary "Add"]]])
-
-(defn metric-info [metric cm]
+(defn measure-card [{:keys [measure reference on-select on-delete]}]
   [:div.box>div.level>div.level-item.has-text-centered>div
-   [:p.heading (:name metric)]
-   [:p.title (.toFixed (/ cm (:cm metric)) 2)]
+   [:p.heading (:name measure)]
+   [:p.title (.toFixed (/ (:cm reference) (:cm measure)) 2)]
    [:div.buttons.are-small
     [:button.button.is-rounded.is-outlined.mt-3
-     {:on-click #(reset! selected-metric metric)}
+     {:on-click #(on-select measure)}
      [:i.fas.fa-eye]]
     [:button.button.is-rounded.is-outlined.is-danger.mt-3
-     {:on-click #(reset! metrics (filter (fn [m] (not= m metric)) @metrics))}
+     {:on-click #(on-delete measure)}
      [:i.fas.fa-trash]]]])
 
-(defn size-comparator [point-of-view metrics]
-  [:div.mt-6
-   [:h2.title.is-3 (str (:name point-of-view) " height is:")]
-   [:div.columns.is-flex-wrap-wrap
-    (map (fn [metric] [:div.column.is-one-quarter {:key (:name metric)} (metric-info metric (:cm point-of-view))]) metrics)]])
+(defn size-comparator []
+  (let [reference (atom initial-measure)
+        change-reference #(reset! reference %)]
+    (fn [{:keys [measures on-delete-measure]}]
+      [:div.mt-6
+       [:h2.title.is-3 (str (:name @reference) " height is:")]
+       [:div.columns.is-flex-wrap-wrap
+        (doall (map-indexed (fn [index measure]
+               [:div.column.is-one-quarter
+                {:key index}
+                [measure-card {:measure measure
+                              :reference @reference
+                              :on-select change-reference
+                              :on-delete on-delete-measure}]])
+             measures))]])))
 
 (defn app []
   [:div.container.is-max-desktop
    [:h1.title.is-1.has-text-centered.mt-5 "Imperial System in a Nutshell"]
-   (new-metric-form)
-   (size-comparator @selected-metric @metrics)])
+   [measure-form {:on-submit add-new-measure}]
+   [size-comparator {:measures @measures
+                     :on-delete-measure delete-measure}]])
 
 (rd/render [app]
            (. js/document (getElementById "app")))
