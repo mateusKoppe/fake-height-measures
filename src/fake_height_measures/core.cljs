@@ -1,24 +1,34 @@
 (ns fake-height-measures.core
   (:require
    [reagent.core :as r :refer [atom]]
-   [reagent.dom :as rd]))
+   [reagent.dom :as rd]
+   [cljs.reader :as reader]
+   [fake-height-measures.storage :refer [set-item! get-item]]))
 
 (enable-console-print!)
 
-(defonce initial-measure {:name "Feet" :cm 30.48})
+(defonce initial-measure {:name "Foot" :cm 30.48})
 (defonce reference (atom initial-measure))
 (defonce measures (atom [initial-measure
                           {:name "Meter" :cm 100}
-                          {:name "Aligators" :cm 340}]))
+                          {:name "Aligator" :cm 340}]))
 
 (defn add-new-measure [data]
-  (swap! measures #(conj % data)))
+  (swap! measures #(conj % data))
+  (set-item! "measures" @measures))
 
 (defn select-reference [measure]
   (reset! reference measure))
 
 (defn delete-measure [measure]
-  (swap! measures #(filter (fn [m] (not= m measure)) %)))
+  (swap! measures #(filter (fn [m] (not= m measure)) %))
+  (set-item! "measures" @measures))
+
+(defn init-localstorage []
+  (let [persisted-measures (reader/read-string (get-item "measures"))]
+    (if persisted-measures
+      (reset! measures persisted-measures)
+      (set-item! "measures" @measures))))
 
 (defn measure-form []
   (let [data (atom {:name nil
@@ -68,6 +78,7 @@
             measures))]])
 
 (defn app []
+  (init-localstorage)
   (let [handle-new-measure #(do (add-new-measure %)
                                 (select-reference %))]
     (fn []
