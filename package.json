@@ -1,0 +1,22 @@
+{
+  "name": "fake-height-measures",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "publish": "gh-pages -d resources/public -b build"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mateusKoppe/fake-height-mesures.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/mateusKoppe/fake-height-mesures/issues"
+  },
+  "homepage": "https://github.com/mateusKoppe/fake-height-mesures#readme",
+  "devDependencies": {
+    "gh-pages": "^3.2.3"
+  }
+}
